@@ -4,8 +4,11 @@ Bson = require('bson');
 qbson = require('../qbson');
 BSON = new Bson();
 //buffalo = require('buffalo')
-msgpack = require('msgpack')
+msgpack = require('msgpack')                    // github.com msgpack-node
 msgpackjs = require('msgpack-js')
+msgpacklite = require('msgpack-lite')
+nodemsgpack = require('/home/andras/src/node-msgpack.git/')           // same as msgpack-node?  readme and timings very similar
+msgpackjavascript = require('/home/andras/src/msgpack-javascript.git/') // pure js, including r/w writeDoubleLE and all utf8 handling!!
 
 utf8 = require('q-utf8');
 
@@ -479,6 +482,9 @@ data = dataset[i];
     timeit.bench({
         'msgpack': function(){ x = msgpack.pack(data) },
         'msgpack-js': function(){ x = msgpackjs.encode(data) },
+        'msgpack-lite': function(){ x = msgpacklite.encode(data) },
+        'msgpackjavascript': function(){ x = msgpackjavascript.pack(data) },
+        'nodemsgpack': function(){ x = nodemsgpack.pack(data) },
         'q-msgpack': function(){ x = mp_encode(data) },
         'bson': function(){ x = BSON.serialize(data) },
         'qbson': function(){ x = qbson.encode(data) },
