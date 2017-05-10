@@ -1,6 +1,8 @@
 timeit = require('qtimeit')
 jsonSimple = require('../json-simple')
-//BSON = require('bson').BSONPure.BSON
+Bson = require('bson');
+qbson = require('../qbson');
+BSON = new Bson();
 //buffalo = require('buffalo')
 msgpack = require('msgpack')
 msgpackjs = require('msgpack-js')
@@ -133,9 +135,16 @@ function mp_encodeNumber( buf, pos, value ) {
         buf[pos] = (value >= 0) ? (T_FIXINT | value) : (T_NEG_FIXINT | (value & 0x1f));
         return pos + 1;
     }
-    else if (value >= -0x10000 && value <= 0x7fff) {
-        buf[pos] = T_INT_16;
-        mp_putInt16(buf, pos+1, value);
+    else if (value >= -0x10000 && value <= 0xffff) {
+        // the sign is encoded in UINT (positive) vs INT (negative),
+        // thus keeping all 16 bits of precision
+        if (value >= 0) {
+            buf[pos] = T_UINT_16;
+            mp_putInt16(buf, pos+1, value);
+        } else {
+            buf[pos] = T_UINT_16;
+            mp_putInt16(buf, pos+1, value & 0xffff);
+        }
         return pos + 3;
     }
     else {
@@ -367,6 +376,7 @@ function mp_objectType( value ) {
     case 'String': return 'String';
     case 'Boolean': return 'Boolean';
     case 'Buffer': return 'Binary';
+    case 'Date': return 'Date';
     default: return 'Map';
     }
 }
@@ -432,20 +442,16 @@ var data = -10;
 var data = new Array(79).join("x");
 var data = {a: 1.5, b: "foo", c: [1,2], d: true, e: {}};
 
-timeit(1000000, function(){ x = mp_typeof(data) });
-timeit(1000000, function(){ x = mp_objectType(data) });
-timeit(1000000, function(){ x = mp_type(data) });
+//timeit(1000000, function(){ x = mp_typeof(data) });
+//timeit(1000000, function(){ x = mp_objectType(data) });
+//timeit(1000000, function(){ x = mp_type(data) });
 
 var dataset = [
-    {a: "ABC", b: 1, c: "DEFGHI\xff", d: 12345.67e-1, e: null, f: new Date(), g: {zz:12.5}, h: [1,2]},
-// FIXME: date encodes as 0x80, should be FIXSTR <b8 32 30 30 31 2d 30 31 2d 30 31 54 30 30 3a 30 30 3a 30 30 2e 30 30 30 5a>
-// which is the 24-byte string "2001-01-01T00:00:00.000Z"
-    new Date('2001-01-01T00:00:00.000Z'),
-    {a: "ABC", b: 1, c: "DEFGHI\xff", d: 12345.67e-1, e: null, f: new Date(), g: {zz:12.5}, h: [1,2]},
     -10,
     1000,
     "foobar",
     new Array(101).join('x'),
+    new Date('2001-01-01T00:00:00.000Z'),
     {a:1, b:2, c:3},
     {a:{aa:1,bb:2,cc:3}, b:{aa:1,bb:2,cc:3}, c:{aa:1,bb:2,cc:3}},
     [1,2,3,"foo"],
@@ -461,21 +467,25 @@ data = dataset[i];
 
     x = mp_encode(data);
     y = msgpackjs.encode(data);
-    if (JSON.stringify(x) !== JSON.stringify(y)) console.log("AR: CODING ERROR:", x, y);
+    if (JSON.stringify(x) !== JSON.stringify(y)) console.log("AR: CODING ERROR: got", x, ", wanted ", y);
     //console.log("AR: encoded as", JSON.stringify(x.slice(0, 200)));
     //console.log("AR: expected  ", JSON.stringify(msgpackjs.encode(data).slice(0, 200)));
     //console.log("AR: len", x.length);
     //process.exit();
 
     var x;
-    timeit.bench.timeGoal = 1.00;
+    timeit.bench.timeGoal = 0.40;
     timeit.bench.visualize = true;
     timeit.bench({
         'msgpack': function(){ x = msgpack.pack(data) },
         'msgpack-js': function(){ x = msgpackjs.encode(data) },
         'q-msgpack': function(){ x = mp_encode(data) },
+        'bson': function(){ x = BSON.serialize(data) },
+        'qbson': function(){ x = qbson.encode(data) },
         'json': function(){ x = JSON.stringify(data) },
     });
+
+    timeit.bench.showPlatformInfo = false;
 }
 
 /**
