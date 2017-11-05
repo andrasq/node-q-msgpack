@@ -12,8 +12,12 @@ msgpackjs = require('msgpackjs')
 // fix msgpackjs.pack to return buffers
 msgpackjs_pack = msgpackjs.pack; msgpackjs.pack = function(v){ return new Buffer(msgpackjs_pack(v)) }
 msgpacklite = require('msgpack-lite')
+var nodemsgpack;
+var msgpackjavascript;
+try {
 nodemsgpack = require('/home/andras/src/node-msgpack.git/')           // same as msgpack-node?  readme and timings very similar
 msgpackjavascript = require('/home/andras/src/msgpack-javascript.git/') // pure js, including r/w writeDoubleLE and all utf8 handling!!
+} catch (e) { }
 
 var qmsgpack = require('./')
 
@@ -131,9 +135,7 @@ data = dataset[i];
     //process.exit();
 
     var x;
-    timeit.bench.timeGoal = 0.40;
-    timeit.bench.visualize = true;
-    timeit.bench({
+    testSuite = {
         'msgpack': function(){ x = msgpack.pack(data) },
         'msgpack-js': function(){ x = msgpack_js.encode(data) },
         'msgpack-lite': function(){ x = msgpacklite.encode(data) },
@@ -145,7 +147,14 @@ data = dataset[i];
         'bson': function(){ x = BSON.serialize(data) },
         'qbson': function(){ x = qbson.encode(data) },
         'json': function(){ x = JSON.stringify(data) },
-    });
+    };
+    if (!msgpackjavascript) delete testSuite['msgpackjavascript'];
+    if (!msgpackjavascript) delete testSuite['msgpackjavascript Buf'];
+    if (!nodemsgpack) delete testSuite.nodemsgpack;
+
+    timeit.bench.timeGoal = 0.40;
+    timeit.bench.visualize = true;
+    timeit.bench(testSuite);
 
     timeit.bench.showPlatformInfo = false;
 }
