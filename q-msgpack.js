@@ -449,6 +449,37 @@ var data = {a: 1.5, b: "foo", c: [1,2], d: true, e: {}};
 //timeit(1000000, function(){ x = mp_objectType(data) });
 //timeit(1000000, function(){ x = mp_type(data) });
 
+// sample dataset used by the `msgpack` benchmark
+if (0) {
+    var hugePack = new Array(500000);
+    for (var i=0; i<hugePack.length; i++) hugePack[i] = {'abcdef' : 1, 'qqq' : 13, '19' : [1, 2, 3, 4]};
+
+    timeit(1, function(){ x = mp_encode(hugePack) });
+    timeit(1, function(){ x = JSON.stringify(hugePack) });
+    timeit(1, function(){ x = JSON.parse(JSON.stringify(hugePack)) });
+    timeit(1, function(){ x = msgpack.pack(hugePack) });
+    timeit(1, function(){ x = msgpack.unpack(msgpack.pack(hugePack)) });
+    // BSON.serialize crashes with "RangeError: Attempt to write outside buffer bounds"
+    timeit(1, function(){ x = qbson.encode(hugePack) });
+    timeit(1, function(){ x = qbson.decode(qbson.encode(hugePack)) });
+/**
+"function (){ x = mp_encode(hugePack) }": 1 loops in 0.5847 of 0.58 sec: 1.71 / sec, 584.675791 ms each
+"function (){ x = JSON.stringify(hugePack) }": 1 loops in 0.4439 of 0.44 sec: 2.25 / sec, 443.874884 ms each
+"function (){ x = JSON.parse(JSON.stringify(hugePack)) }": 1 loops in 1.0388 of 1.04 sec: 0.96 / sec, 1038.825301 ms each
+"function (){ x = msgpack.pack(hugePack) }": 1 loops in 1.4661 of 1.47 sec: 0.68 / sec, 1466.142639 ms each
+"function (){ x = msgpack.unpack(msgpack.pack(hugePack)) }": 1 loops in 3.0564 of 3.06 sec: 0.33 / sec, 3056.424505 ms each
+
+msgpack                 0 ops/sec (1 runs of 10 calls in 15.019 out of 23.948 sec, +/- 0.00%)    1000 >>>>>
+msgpack-js              0 ops/sec (1 runs of 10 calls in 32.190 out of 51.617 sec, +/- 0.00%)     467 >>
+msgpack-lite            0 ops/sec (1 runs of 10 calls in 10.509 out of 16.818 sec, +/- 0.00%)    1429 >>>>>>>
+msgpackjavascript       1 ops/sec (1 runs of 10 calls in 5.591 out of 8.975 sec, +/- 0.00%)      2686 >>>>>>>>>>>>>
+nodemsgpack             0 ops/sec (1 runs of 10 calls in 15.211 out of 24.192 sec, +/- 0.00%)     987 >>>>>
+q-msgpack               1 ops/sec (1 runs of 10 calls in 6.491 out of 10.321 sec, +/- 0.00%)     2314 >>>>>>>>>>>>
+qbson                   1 ops/sec (1 runs of 10 calls in 6.334 out of 10.467 sec, +/- 0.00%)     2371 >>>>>>>>>>>>
+json                    2 ops/sec (1 runs of 10 calls in 4.563 out of 7.204 sec, +/- 0.00%)      3292 >>>>>>>>>>>>>>>>
+**/
+}
+
 var dataset = [
     -10,
     1000,
@@ -466,7 +497,7 @@ var dataset = [
 for (var i=0; i<dataset.length; i++) {
 data = dataset[i];
     console.log("-------");
-    console.log(JSON.stringify(data));
+    console.log(JSON.stringify(data).slice(0, 100));
 
     x = mp_encode(data);
     y = msgpackjs.encode(data);
