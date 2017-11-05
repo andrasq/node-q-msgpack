@@ -1,0 +1,13 @@
+{
+  "name": "q-msgpack",
+  "version": "0.1.0",
+  "description": "fast pure js msgpack coder",
+  "main": "q-msgpack.js",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/andrasq/node-q-msgpack",
+  "keywords": [ ],
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}
